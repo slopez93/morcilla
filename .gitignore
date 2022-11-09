@@ -1,0 +1,20 @@
+# Common directories
+.webpack/
+node_modules/
+dist/
+.tmp
+logs/
+data
+test-results.xml
+**/.DS_Store
+.env
+
+# Serverless directories
+.dynamodb
+.serverless
+stage-artifacts
+_es-logs
+**/sls-package-output
+
+# Firebase credentials
+**/credentials.json

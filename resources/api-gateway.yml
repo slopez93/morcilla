@@ -1,0 +1,64 @@
+Resources:
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: "Morcilla API Gateway"
+      Description: "API Gateway for Morcilla backend"
+  ApiGatewayResourceApi:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+        RestApiId: !Ref ApiGatewayRestApi
+        ParentId: !GetAtt 
+            - ApiGatewayRestApi
+            - RootResourceId
+        PathPart: ${self:custom.constant.API_GATEWAY_BASE_PATH}
+  ApiGatewayAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      AuthorizerResultTtlInSeconds: 300
+      IdentitySource: method.request.header.Authorization
+      Name: Cognito
+      RestApiId:
+        Ref: ApiGatewayRestApi
+      Type: COGNITO_USER_POOLS
+      ProviderARNs:
+        - Fn::GetAtt: [CognitoUserPool, Arn]
+
+# Resources:
+#     ApiGatewayHttpApi:
+#       Type: AWS::ApiGatewayV2::Api
+#       Properties:
+#         Name: ${self:custom.environment.API_GATEWAY_NAME}
+#         Description: "API Gateway for Morcilla backend"
+#         ProtocolType: "HTTP"
+#     ApiGatewayV2StageDefault:
+#       Type: AWS::ApiGatewayV2::Stage
+#       Properties:
+#         ApiId: !Ref ApiGatewayHttpApi
+#         StageName: $default
+#         AutoDeploy: true
+#     # ApiGatewayV2StageV2:
+#     #   Type: AWS::ApiGatewayV2::Stage
+#     #   Properties:
+#     #     ApiId: !Ref ApiGatewayHttpApi
+#     #     StageName: v2
+#     #     AutoDeploy: true
+#     ApiGatewayAuthorizerV2:
+#       Type: AWS::ApiGatewayV2::Authorizer
+#       Properties:
+#         Name: ${self:custom.environment.API_GATEWAY_AUTHORIZER_NAME}
+#         ApiId: !Ref ApiGatewayHttpApi
+#         AuthorizerType: "JWT"
+#         AuthorizerResultTtlInSeconds: 0
+#         IdentitySource:
+#           - $request.header.Authorization
+#         JwtConfiguration:
+#           Audience: 
+#             - !Ref CognitoUserPoolClient
+#           Issuer: https://cognito-idp.${self:custom.constant.REGION}.amazonaws.com/${cf:morcilla-${self:provider.stage}.UserPoolId}
+  
+# Outputs:
+#   HttpApiResourceId:
+#     Value: !Ref ApiGatewayHttpApi
+#     Export:
+#       Name: apiGateway-HttpApiResourceId

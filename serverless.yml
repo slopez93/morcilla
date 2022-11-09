@@ -1,0 +1,83 @@
+service: morcilla
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  stage: ${opt:stage}
+  region: ${self:custom.constant.REGION}
+  apiGateway:
+    minimumCompressionSize: 131072
+    restApiId: !Ref ApiGatewayRestApi
+    restApiRootResourceId: !Ref ApiGatewayResourceApi
+
+plugins:
+  - serverless-offline
+  - serverless-iam-roles-per-function
+
+custom:
+  constant: ${file(./env.yml):CONSTANT}
+  environment: ${file(./env.yml):${opt:stage}}
+
+package:
+  exclude:
+    - .git/**
+    - src/**
+    - test/**
+    - e2e/**
+    - nodemon.json
+    - README.md
+
+functions:
+  index:
+    handler: dist/index.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+          - dynamodb:PutItem
+          - dynamodb:PartiQLSelect
+        Resource:
+          - Fn::GetAtt: [MorcillaTable, Arn]
+    events:
+      - http:
+          path: "/"
+          method: any
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: !Ref ApiGatewayAuthorizer
+      - http:
+          path: "{proxy+}"
+          method: any
+          cors: true
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId: !Ref ApiGatewayAuthorizer
+
+  food-added-notification:
+    handler: dist/modules/shoppingList/infrastructure/controllers/lambda/foodAddedToShoppingList/handler.handler
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt: [MorcillaTable, StreamArn]
+          filterPatterns:
+            - eventName: [MODIFY]
+              dynamodb:
+                NewImage:
+                  pk:
+                    S:
+                      - prefix: "SHOPPING_LIST#"
+
+  migrate-shopping-lists:
+    handler: dist/modules/shoppingList/infrastructure/controllers/lambda/migrateShoppingList/handler.handler
+    events:
+      - schedule: cron(00 12 * * ? *)
+
+resources:
+  - ${file(resources/api-gateway.yml)}
+  - ${file(resources/dynamodb.yml)}
+  - ${file(resources/cognito-user-pool.yml)}
+  - ${file(resources/cognito-identity-pool.yml)}

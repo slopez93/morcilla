@@ -1,0 +1,53 @@
+Resources:
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
+    Properties:
+      UserPoolName: ${self:custom.environment.COGNITO_USER_POOL_NAME}
+      # Set email as an alias
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      # Schema:
+      #   - AttributeDataType: String
+      #     DeveloperOnlyAttribute: false
+      #     Mutable: true
+      #     Name: extraAttributes
+      #     Required: false
+      #   - AttributeDataType: String
+      #     DeveloperOnlyAttribute: false
+      #     Mutable: true
+      #     Name: identityId
+      #     Required: false
+      #   - AttributeDataType: String
+      #     DeveloperOnlyAttribute: false
+      #     Mutable: false
+      #     Name: coupon
+      #     Required: false
+      Policies:
+        PasswordPolicy: 
+          MinimumLength: 6
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+          RequireUppercase: true
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: ${self:custom.environment.COGNITO_USER_POOL_CLIENT_NAME}
+      GenerateSecret: false
+      SupportedIdentityProviders: 
+        - COGNITO
+      CallbackURLs: 
+        - "http://localhost:3000"
+      LogoutURLs:
+        - "http://localhost:3000"
+
+Outputs:
+  UserPoolId:
+    Value: !Ref CognitoUserPool
+    Export:
+      Name: cognito-userPoolId
